@@ -36,7 +36,6 @@ int sequence [2][2] = {
 
 // Necessary for display updating
 bool onOff [4] = {false, false, false, false};
-bool MIDI_state = false;
 
 const uint8_t BUTTON_PINS[NUM_BUTTONS] = {19, 20, 21, 22};
 
@@ -49,8 +48,6 @@ int bankC = 18;
 int lastBank = 0;
 
 int screenSaver = 20000UL * 1; // minutes of inactivity before 'screensaver' kicks in
-
-unsigned long lastActivityTime = millis();
 
 void setup() {
 
@@ -88,6 +85,7 @@ void setup() {
 }
 
 void loop() {
+  interrupts();
   
   whichBank();
   
@@ -103,8 +101,6 @@ void loop() {
       // If any buttons are pressed, call function to find out which one
       if (buttons[i].rose()) {
         buttonPress();
-        // Some MIDI has been transmitted: set state to true
-        MIDI_state = true;
       }
     }
   }
@@ -113,31 +109,10 @@ void loop() {
   if (lastBank != temp) {
     lastBank = temp;
     updateDisplay(temp);
-    lastActivityTime = millis();
   }
-
-  // Check for last activity and update display accordingly
-  if ((millis() - lastActivityTime >= screenSaver) && (MIDI_state == true)) {
-    MIDI_state = false;
-    lastActivity();
-  }
-  else if ((millis() - lastActivityTime >= screenSaver) && (MIDI_state == false)) {
-    //Serial.println("Screensaver applied");
-    rainbowCycle(7);
-  }
-  //Serial.println(MIDI_state);
 }
 
 // =================== UTILITY ===================
-
-void lastActivity() {
-  if (MIDI_state != MIDI_state) {
-    Serial.println("Operation Mode");
-    lastActivityTime = millis();
-    updateDisplay(whichBank());
-  }
-}
-
 
 void buttonPress() {
   if (buttons[0].rose()) {
@@ -294,7 +269,6 @@ void RealTimeSystem(byte realtimebyte) { //receive and process midi clock messag
 
 void MIDIout(int CC, int chan) { //send MIDI CC data to DAW
   Serial.println("MIDI out");
-  lastActivityTime = millis ();
   if (togglestate[CC]) {
     usbMIDI.sendControlChange (CC, 0, chan);
     togglestate[CC] = false;
